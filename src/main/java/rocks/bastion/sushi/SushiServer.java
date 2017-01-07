@@ -1,21 +1,26 @@
 package rocks.bastion.sushi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rocks.bastion.error.Error;
 import rocks.bastion.error.NotFoundException;
 import rocks.bastion.json.JsonTransformer;
 import spark.Request;
 import spark.Response;
+import spark.Spark;
 
-import static java.lang.String.*;
+import static java.lang.String.format;
 import static spark.Spark.*;
 
-class SushiController {
+public class SushiServer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SushiServer.class);
 
     private static final JsonTransformer jsonTransformer = new JsonTransformer();
-
     private static final SushiService sushiService = new SushiService();
 
-    public static void main(final String... args) {
+    public static void start() {
+        LOG.info("Starting SushiServer");
         port(8080);
 
         initializeFilters();
@@ -29,14 +34,24 @@ class SushiController {
 
         post("/sushi", (request, response) -> {
             final Sushi sushi = jsonTransformer.fromJson(request.body(), Sushi.class);
-            return sushiService.create(sushi.getName(), sushi.getPrice().doubleValue());
+            Sushi createdSushi = sushiService.create(sushi.getName(), sushi.getPrice().doubleValue());
+            response.status(201);
+            return createdSushi;
         }, jsonTransformer);
 
         awaitInitialization();
     }
 
+    static void stop() {
+        Spark.stop();
+    }
+
     private static void initializeFilters() {
         before((request, response) -> {
+            LOG.info("Received request: " + request);
+            LOG.info(request.headers().toString());
+            LOG.info(request.headers("Content-Type"));
+
             setResponseContentType(response);
             validateRequestContentType(request);
         });
@@ -53,7 +68,7 @@ class SushiController {
     }
 
     private static void validateRequestContentType(final Request request) {
-        if (!"application/json".equals(request.headers("Content-Type"))) {
+        if (request.headers("Content-Type") == null || !request.headers("Content-Type").toLowerCase().contains("application/json")) {
             halt(415, jsonTransformer.render(new Error("Only 'application/json' is supported.")));
         }
     }
