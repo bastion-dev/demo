@@ -2,7 +2,7 @@ package rocks.bastion.sushi;
 
 import java.util.*;
 
-import static java.util.Optional.*;
+import static java.util.Optional.ofNullable;
 
 final class SushiRepository {
 

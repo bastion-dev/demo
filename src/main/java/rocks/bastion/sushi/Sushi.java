@@ -8,6 +8,8 @@ public final class Sushi {
     private String name;
     private BigDecimal price;
 
+    protected Sushi() { }
+
     public Sushi(final long id, final String name, final BigDecimal price) {
         this.id = id;
         this.name = name;

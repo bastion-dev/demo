@@ -1,14 +1,14 @@
 package rocks.bastion.sushi;
 
-import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import rocks.bastion.Bastion;
-import rocks.bastion.core.GeneralRequest;
 import rocks.bastion.core.json.JsonRequest;
-import rocks.bastion.junit.BastionRunner;
+
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SushiServerTest {
 
@@ -23,12 +23,35 @@ public class SushiServerTest {
     }
 
     @Test
-    public void createSushi_sushiRetrievedWithGet() {
-        JsonRequest request = JsonRequest.postFromString("http://localhost:8080/sushi", "{\"name\":\"Salmon Nigiri\", \"price\":1.50}");
+    public void createSushi_201forFirstCreate_409forSecondCreate() {
+        final String requestBody = "{" +
+                "\"name\":\"Tuna Sashimi\", " +
+                "\"price\":2.50" +
+                "}";
+        JsonRequest request = JsonRequest.postFromString("http://localhost:8080/sushi", requestBody);
+
         Bastion.request(request)
-                .thenDo((statusCode, response, model) -> {
-                    Assertions.assertThat(model).isNotNull();
-                    Assertions.assertThat(statusCode).isEqualTo(201);
+                .withAssertions((statusCode, response, model) -> assertThat(statusCode).isEqualTo(201)).call();
+
+        Bastion.request(request)
+                .withAssertions((statusCode, response, model) -> assertThat(statusCode).isEqualTo(409)).call();
+    }
+
+    @Test
+    public void createSushi_bindModel() {
+        final String requestBody = "{" +
+                "\"name\":\"Salmon Nigiri\", " +
+                "\"price\":1.50" +
+                "}";
+        JsonRequest request = JsonRequest.postFromString("http://localhost:8080/sushi", requestBody);
+
+        Bastion.request(request)
+                .bind(Sushi.class)
+                .withAssertions((statusCode, response, sushi) -> {
+                    assertThat(statusCode).isEqualTo(201);
+                    assertThat(sushi).isNotNull();
+                    assertThat(sushi.getName()).isEqualTo("Salmon Nigiri");
+                    assertThat(sushi.getPrice()).isEqualTo(new BigDecimal(1.50));
                 }).call();
     }
 }
